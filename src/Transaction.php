@@ -335,7 +335,7 @@ class Transaction implements ArrayAccess
      * @param string $privateKey
      * @return string
      */
-    public function sign(string $privateKey)
+    public function sign($privateKey)
     {
         $txHash = $this->hash(false);
         $privateKey = $this->secp256k1->keyFromPrivate($privateKey, 'hex');
