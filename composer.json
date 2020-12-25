@@ -49,9 +49,9 @@
     ],
     "require": {
         "PHP": ">=5.6",
-        "olegabr/rlp": "~0.2",
+        "olegabr/rlp": "^0.3.2",
         "olegabr/ethereum-util": "~0.1",
         "olegabr/keccak": "~1",
-        "simplito/elliptic-php": "1.0.3"
+        "simplito/elliptic-php": "~1.0.6"
     }
 }
