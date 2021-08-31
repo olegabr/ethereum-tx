@@ -11,7 +11,7 @@ class TransactionTest extends TestCase
 {
     /**
      * testGet
-     * 
+     *
      * @return void
      */
     public function testGet()
@@ -44,7 +44,7 @@ class TransactionTest extends TestCase
 
     /**
      * testSet
-     * 
+     *
      * @return void
      */
     public function testSet()
@@ -103,7 +103,7 @@ class TransactionTest extends TestCase
 
     /**
      * testHash
-     * 
+     *
      * @return void
      */
     public function testHash()
@@ -136,7 +136,7 @@ class TransactionTest extends TestCase
 
     /**
      * testSign
-     * 
+     *
      * @return void
      */
     public function testSign()
@@ -167,7 +167,7 @@ class TransactionTest extends TestCase
 
     /**
      * testSerialize
-     * 
+     *
      * @return void
      */
     public function testSerialize()
@@ -193,7 +193,7 @@ class TransactionTest extends TestCase
     /**
      * testEIP155
      * you can find test case here: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
-     * 
+     *
      * @return void
      */
     public function testEIP155()
@@ -243,7 +243,7 @@ class TransactionTest extends TestCase
     /**
      * testGetFromAddress
      * 0x9d8a62f656a8d1615c1294fd71e9cfb3e4855a4f
-     * 
+     *
      * @return void
      */
     public function testGetFromAddress()
@@ -303,7 +303,7 @@ class TransactionTest extends TestCase
 
     /**
      * testIssue15
-     * 
+     *
      * @return void
      */
     public function testIssue15()
@@ -336,7 +336,7 @@ class TransactionTest extends TestCase
     /**
      * testIssue26
      * default $txData should be empty array
-     * 
+     *
      * @return void
      */
     public function testIssue26()
@@ -346,14 +346,14 @@ class TransactionTest extends TestCase
         ];
         for ($i=0; $i<count($tests); $i++) {
             $transaction = new Transaction($tests[$i]);
-            $this->assertEquals($transaction->txData, []);
+            $this->assertEquals($transaction->getTxData(), []);
         }
     }
 
     /**
      * testEIP2930
      * see: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2930.md
-     * 
+     *
      * @return void
      */
     public function testEIP2930()
@@ -379,7 +379,7 @@ class TransactionTest extends TestCase
     /**
      * testEIP1559
      * see: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1559.md
-     * 
+     *
      * @return void
      */
     public function testEIP1559()
