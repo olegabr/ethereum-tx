@@ -1,14 +1,30 @@
 # ethereum-tx
-[![PHP](https://github.com/web3p/ethereum-tx/actions/workflows/php.yml/badge.svg)](https://github.com/web3p/ethereum-tx/actions/workflows/php.yml)
-[![codecov](https://codecov.io/gh/web3p/ethereum-tx/branch/master/graph/badge.svg)](https://codecov.io/gh/web3p/ethereum-tx)
+[![CI](https://github.com/olegabr/ethereum-tx/actions/workflows/ci.yml/badge.svg)](https://github.com/olegabr/ethereum-tx/actions/workflows/ci.yml)
+[![Licensed under the MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/olegabr/ethereum-tx/blob/master/LICENSE)
 
 Ethereum transaction library in PHP.
 
+This repository is the EthereumICO fork ([olegabr/ethereum-tx](https://github.com/olegabr/ethereum-tx))
+of [web3p/ethereum-tx](https://github.com/web3p/ethereum-tx). It keeps the
+`Web3p\EthereumTx` namespace and adds PHP 8.x support, EIP-2930/EIP-1559 typed
+transactions and tests.
+
 # Install
 
+The fork is not published on Packagist, so point Composer at the repository:
+
+```json
+{
+    "repositories": [
+        { "type": "vcs", "url": "https://github.com/olegabr/ethereum-tx" }
+    ],
+    "require": {
+        "olegabr/ethereum-tx": "dev-master"
+    }
+}
 ```
-composer require web3p/ethereum-tx
-```
+
+Pin a tagged release instead of `dev-master` when one covers your needs.
 
 # Usage
 
