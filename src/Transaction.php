@@ -205,7 +205,7 @@ class Transaction implements ArrayAccess
      * @param string $name key or protected property name
      * @return mixed
      */
-    public function __get($name)
+    public function __get(string $name)
     {
         $method = 'get' . ucfirst($name);
 
@@ -222,7 +222,7 @@ class Transaction implements ArrayAccess
      * @param mixed value
      * @return void
      */
-    public function __set($name, $value)
+    public function __set(string $name, $value)
     {
         $method = 'set' . ucfirst($name);
 
@@ -234,12 +234,12 @@ class Transaction implements ArrayAccess
 
     /**
      * Return whether the transaction has the given key, so isset() works on
-     * the attribute map (transaction->nonce) as well.
+     * the attribute map ($transaction->nonce) as well.
      *
      * @param string $name key, eg: to
      * @return bool
      */
-    public function __isset($name)
+    public function __isset(string $name)
     {
         return $this->offsetExists($name);
     }
@@ -250,7 +250,7 @@ class Transaction implements ArrayAccess
      * @param string $name key, eg: to
      * @return void
      */
-    public function __unset($name)
+    public function __unset(string $name)
     {
         $this->offsetUnset($name);
     }
@@ -380,9 +380,34 @@ class Transaction implements ArrayAccess
     }
 
     /**
+     * Return tx data with leading zeros removed from hex encoded integer fields, so they are RLP encoded as integers.
+     * Byte-string fields (to, data) keep their leading zero bytes.
+     *
+     * @param array $txData tx data
+     * @return array tx data
+     */
+    protected function trimIntegerFields(array $txData)
+    {
+        foreach (['chainId', 'nonce', 'gasPrice', 'gasLimit', 'value', 'v', 'r', 's'] as $name) {
+            $key = $this->attributeMap[$name]['key'];
+
+            if (isset($txData[$key]) && is_string($txData[$key]) && strpos($txData[$key], '0x') === 0) {
+                $hex = substr($txData[$key], 2);
+
+                // same as web3p/rlp 0.3.5, one byte values are kept as they are
+                if (strlen($hex) > 2) {
+                    $hex = ltrim($hex, '0');
+                }
+                $txData[$key] = '0x' . $hex;
+            }
+        }
+        return $txData;
+    }
+
+    /**
      * RLP serialize the ethereum transaction.
      * 
-     * @return \Web3p\RLP\RLP\Buffer serialized ethereum transaction
+     * @return string hex encoded of the serialized ethereum transaction
      */
     public function serialize()
     {
@@ -400,7 +425,7 @@ class Transaction implements ArrayAccess
                 $txData[$key] = $data;
             }
         }
-        return $this->rlp->encode($txData);
+        return $this->rlp->encode($this->trimIntegerFields($txData));
     }
 
     /**
@@ -409,7 +434,7 @@ class Transaction implements ArrayAccess
      * @param string $privateKey hex encoded private key
      * @return string hex encoded signed ethereum transaction
      */
-    public function sign($privateKey)
+    public function sign(string $privateKey)
     {
         if ($this->util->isHex($privateKey)) {
             $privateKey = $this->util->stripZero($privateKey);
@@ -445,7 +470,7 @@ class Transaction implements ArrayAccess
      * @param bool $includeSignature hash with signature
      * @return string hex encoded hash of the ethereum transaction
      */
-    public function hash($includeSignature=false)
+    public function hash(bool $includeSignature=false)
     {
         $chainId = $this->chainIdAsInt();
 
@@ -476,7 +501,7 @@ class Transaction implements ArrayAccess
             }
             $this->txData = $rawTxData;
         }
-        $serializedTx = $this->rlp->encode($txData);
+        $serializedTx = $this->rlp->encode($this->trimIntegerFields($txData));
 
         return $this->util->sha3(hex2bin($serializedTx));
     }
@@ -503,8 +528,8 @@ class Transaction implements ArrayAccess
             if (!$r || !$s) {
                 throw new RuntimeException('Invalid signature r and s.');
             }
-            // a transaction restored from its serialized form keeps r/s/v as hex
-            // strings, while sign() stores v as an integer
+            // a transaction restored from its serialized form keeps v as a hex
+            // string, while sign() stores v as an integer
             if (is_string($v) && $this->util->isZeroPrefixed($v)) {
                 $v = (int) hexdec($this->util->stripZero($v));
             } else {
@@ -524,6 +549,7 @@ class Transaction implements ArrayAccess
                 $v -= 27;
             }
             $txHash = $this->hash(false);
+
             $publicKey = $this->secp256k1->recoverPubKey($txHash, [
                 'r' => $r,
                 's' => $s

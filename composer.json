@@ -48,8 +48,8 @@
         }
     ],
     "require": {
-        "PHP": "^7.0 || ^8.0",
-        "olegabr/rlp": "^0.3.6",
+        "php": "^7.0 || ^8.0",
+        "olegabr/rlp": "^0.3.6 || ^0.4",
         "olegabr/ethereum-util": "~0.1",
         "olegabr/keccak": "~1",
         "simplito/elliptic-php": "~1.0.6"
