@@ -233,6 +233,29 @@ class Transaction implements ArrayAccess
     }
 
     /**
+     * Return whether the transaction has the given key, so isset() works on
+     * the attribute map (transaction->nonce) as well.
+     *
+     * @param string $name key, eg: to
+     * @return bool
+     */
+    public function __isset($name)
+    {
+        return $this->offsetExists($name);
+    }
+
+    /**
+     * Unset the given key of the transaction, mirroring offsetUnset().
+     *
+     * @param string $name key, eg: to
+     * @return void
+     */
+    public function __unset($name)
+    {
+        $this->offsetUnset($name);
+    }
+
+    /**
      * Return hash of the ethereum transaction without signature.
      * 
      * @return string hex encoded of the transaction
@@ -332,6 +355,21 @@ class Transaction implements ArrayAccess
     }
 
     /**
+     * Return the chain id as an integer, accepting both int and 0x hex string.
+     *
+     * @return int
+     */
+    protected function chainIdAsInt()
+    {
+        $chainId = $this->offsetGet('chainId');
+
+        if (is_string($chainId) && $this->util->isZeroPrefixed($chainId)) {
+            return (int) hexdec($this->util->stripZero($chainId));
+        }
+        return (int) $chainId;
+    }
+
+    /**
      * Return raw ethereum transaction data.
      * 
      * @return array raw ethereum transaction data
@@ -348,13 +386,11 @@ class Transaction implements ArrayAccess
      */
     public function serialize()
     {
-        $chainId = $this->offsetGet('chainId');
+        $chainId = $this->chainIdAsInt();
 
         // sort tx data
-        if (ksort($this->txData) !== true) {
-            throw new RuntimeException('Cannot sort tx data by keys.');
-        }
-        if ($chainId && $chainId > 0) {
+        ksort($this->txData);
+        if ($chainId > 0) {
             $txData = array_fill(0, 9, '');
         } else {
             $txData = array_fill(0, 6, '');
@@ -389,10 +425,10 @@ class Transaction implements ArrayAccess
         $s = $signature->s;
         $v = $signature->recoveryParam + 35;
 
-        $chainId = $this->offsetGet('chainId');
+        $chainId = $this->chainIdAsInt();
 
-        if ($chainId && $chainId > 0) {
-            $v += (int) $chainId * 2;
+        if ($chainId > 0) {
+            $v += $chainId * 2;
         }
 
         $this->offsetSet('r', '0x' . $r->toString(16));
@@ -411,29 +447,30 @@ class Transaction implements ArrayAccess
      */
     public function hash($includeSignature=false)
     {
-        $chainId = $this->offsetGet('chainId');
+        $chainId = $this->chainIdAsInt();
 
         // sort tx data
-        if (ksort($this->txData) !== true) {
-            throw new RuntimeException('Cannot sort tx data by keys.');
-        }
+        ksort($this->txData);
         if ($includeSignature) {
             $txData = $this->txData;
+            // the attribute map keeps from (-1) and chainId (-2), but neither
+            // belongs to the serialized transaction itself
+            unset($txData[-1], $txData[-2]);
         } else {
             $rawTxData = $this->txData;
 
-            if ($chainId && $chainId > 0) {
-                $v = (int) $chainId;
+            if ($chainId > 0) {
                 $this->offsetSet('r', '');
                 $this->offsetSet('s', '');
-                $this->offsetSet('v', $v);
+                $this->offsetSet('v', $chainId);
                 $txData = array_fill(0, 9, '');
             } else {
+                // a pre EIP-155 signature is not part of the signed payload
                 $txData = array_fill(0, 6, '');
             }
 
             foreach ($this->txData as $key => $data) {
-                if ($key >= 0) {
+                if ($key >= 0 && $key < count($txData)) {
                     $txData[$key] = $data;
                 }
             }
@@ -466,12 +503,27 @@ class Transaction implements ArrayAccess
             if (!$r || !$s) {
                 throw new RuntimeException('Invalid signature r and s.');
             }
-            $txHash = $this->hash(false);
-
-            if ($chainId && $chainId > 0) {
-                $v -= ($chainId * 2);
+            // a transaction restored from its serialized form keeps r/s/v as hex
+            // strings, while sign() stores v as an integer
+            if (is_string($v) && $this->util->isZeroPrefixed($v)) {
+                $v = (int) hexdec($this->util->stripZero($v));
+            } else {
+                $v = (int) $v;
             }
-            $v -= 35;
+            $chainId = $this->chainIdAsInt();
+            if ($v >= 35) {
+                // EIP-155: v = chainId * 2 + 35 + recoveryParam
+                if ($chainId <= 0) {
+                    // the chain id travels inside v, recover it
+                    $chainId = intdiv($v - 35, 2);
+                    $this->offsetSet('chainId', $chainId);
+                }
+                $v = $v - $chainId * 2 - 35;
+            } else {
+                // legacy signature: v = 27 + recoveryParam
+                $v -= 27;
+            }
+            $txHash = $this->hash(false);
             $publicKey = $this->secp256k1->recoverPubKey($txHash, [
                 'r' => $r,
                 's' => $s
